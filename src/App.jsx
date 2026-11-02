@@ -1,9 +1,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "./supabase";
+import { supabase, supabaseConfigError } from "./supabase";
 import "./App.css";
 import "./App-auth-styles.css";
-import logo from "./assets/logo.jpg";
 const CATEGORIES = [
   { value: "all", label: "Tous les logements" },
   { value: "studio", label: "Studios" },
@@ -283,7 +282,6 @@ const TRANSLATIONS = {
   "Mon compte": "My account",
   "Informations de ton compte EazyHome.": "Your EazyHome account information.",
   "Pseudonyme": "Username",
-  "Adresse e-mail": "Email address",
   "Type de compte": "Account type",
   "Préférence pour les notifications.": "Notification preferences.",
   "Activer les notifications": "Enable notifications",
@@ -296,6 +294,9 @@ const TRANSLATIONS = {
   "Maisons": "Houses",
   "Chambres": "Rooms"
 };
+
+const translate = (text) => TRANSLATIONS[text] || text;
+
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -306,7 +307,6 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [nickname, setNickname] = useState("");
   const [role, setRole] = useState("locataire");
 
   const [properties, setProperties] = useState([]);
@@ -334,7 +334,7 @@ const [theme, setTheme] = useState(() => {
   }
 });
 useEffect(() => {
-  localStorage.setItem("eazyhome-theme", theme);
+  localStorage.setItem("eazyhome_theme", theme);
   document.documentElement.dataset.theme = theme;
 }, [theme]);
 const [language, setLanguage] = useState(() => {
@@ -417,6 +417,14 @@ useEffect(() => {
     let active = true;
 
     async function initialize() {
+      if (supabaseConfigError || !supabase) {
+        if (active) {
+          setAuthError(supabaseConfigError);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const { data, error } = await supabase.auth.getSession();
 
@@ -435,6 +443,12 @@ useEffect(() => {
 
     initialize();
 
+    if (supabaseConfigError || !supabase) {
+      return () => {
+        active = false;
+      };
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -452,6 +466,10 @@ useEffect(() => {
     setPropertyError("");
 
     try {
+      if (supabaseConfigError || !supabase) {
+        throw new Error(supabaseConfigError);
+      }
+
       const { data, error } = await supabase
         .from("properties")
         .select("*")
@@ -496,6 +514,8 @@ useEffect(() => {
 
   useEffect(() => {
     if (user) {
+      // Loading is asynchronous and intentionally updates external data state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadProperties();
     } else {
       setProperties([]);
@@ -521,6 +541,10 @@ useEffect(() => {
     setAuthLoading(true);
 
     try {
+      if (supabaseConfigError || !supabase) {
+        throw new Error(supabaseConfigError);
+      }
+
       if (authMode === "register") {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -558,6 +582,11 @@ useEffect(() => {
   }
 
   async function handleLogout() {
+    if (supabaseConfigError || !supabase) {
+      setAuthError(supabaseConfigError);
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -795,7 +824,7 @@ async function uploadPhotos(files) {
 
   const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
-  if (page === "Mes annonces" && property.owner_id !== user.id) {
+  if (page === "Mes annonces" && property.owner_id !== user?.id) {
     return false;
   }
 
@@ -834,7 +863,7 @@ async function uploadPhotos(files) {
         matchesPrice
       );
     });
-  }, [properties, search, cityFilter, typeFilter, maxPrice]);
+  }, [properties, search, cityFilter, typeFilter, maxPrice, page, user?.id]);
 
   const displayedProperties =
     page === "Favoris"
@@ -871,7 +900,7 @@ async function uploadPhotos(files) {
       <div className="loading-screen">
         <div className="brand-mark">E</div>
         <strong>EazyHome</strong>
-        <span>Chargement de votre espace...</span>
+        <span>{translate("Chargement de votre espace...")}</span>
       </div>
     );
   }
@@ -1905,4 +1934,3 @@ const navItems = [
 }
 
 export default App;
-

@@ -3,5 +3,6 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/easy-home/',
+  // Vercel et le Preview EazyHome servent l’application à la racine.
+  base: '/',
 })
