@@ -1,3 +1,3 @@
 export default {
-  logoUrl: "https://raw.githubusercontent.com/AHOMEFORALL/easy-home/main/src/assets/logo.jpg",
+  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519664046604388/QgvheOZLQQoRPwmY.jpg",
 };

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase, supabaseConfigError } from "./supabase";
 import "./App.css";
 import "./App-auth-styles.css";
+import logoFull from "./assets/eazyhome-logo-full.jpg";
+import logoSymbol from "./assets/eazyhome-logo-symbol.jpg";
 const CATEGORIES = [
   { value: "all", label: "Tous les logements" },
   { value: "studio", label: "Studios" },
@@ -101,6 +103,17 @@ function Avatar({ name, src, size = "normal" }) {
         <span>{getInitials(name)}</span>
       )}
     </div>
+  );
+}
+
+function BrandLogo({ variant = "symbol", className = "" }) {
+  const source = variant === "full" ? logoFull : logoSymbol;
+  return (
+    <img
+      className={`brand-logo brand-logo-${variant} ${className}`.trim()}
+      src={source}
+      alt="Logo EazyHome"
+    />
   );
 }
 
@@ -899,7 +912,7 @@ async function uploadPhotos(files) {
   if (loading) {
     return (
       <div className="loading-screen">
-        <div className="brand-mark">E</div>
+        <BrandLogo />
         <strong>EazyHome</strong>
         <span>{translate("Chargement de votre espace...")}</span>
       </div>
@@ -911,8 +924,7 @@ async function uploadPhotos(files) {
       <main className="auth-page">
         <section className="auth-intro">
           <div className="brand-lockup">
-            <div className="brand-mark">E</div>
-            <span>EazyHome</span>
+            <BrandLogo variant="full" />
           </div>
 
           <h1>La maison, plus simplement.</h1>
@@ -1060,7 +1072,7 @@ const navItems = [
             className="brand-lockup brand-button"
             onClick={() => navigate("Accueil")}
           >
-            <div className="brand-mark">E</div>
+            <BrandLogo />
             <span>EazyHome</span>
           </button>
 
@@ -1908,7 +1920,7 @@ const navItems = [
 
           <section className="right-card about-card">
             <div className="about-brand">
-              <div className="brand-mark">E</div>
+              <BrandLogo />
               <strong>EazyHome</strong>
             </div>
             <p>Une façon plus simple de rechercher ou proposer un logement.</p>
