@@ -40,9 +40,23 @@ async function addWatermark(file, watermarkText) {
           ctx.textAlign = "right";
           ctx.textBaseline = "bottom";
 
-          const text = watermarkText || "EazyHome";
+          const text = `EazyHome • ${watermarkText || "Utilisateur"}`;
           const x = canvas.width - padding;
           const y = canvas.height - padding;
+
+          // Motif répété en diagonale : le filigrane reste identifiable même
+          // si la photo est recadrée ou si le coin inférieur est coupé.
+          ctx.save();
+          ctx.translate(-canvas.width * 0.15, canvas.height * 0.18);
+          ctx.rotate(-Math.PI / 7);
+          ctx.font = `bold ${Math.max(16, Math.round(canvas.width * 0.028))}px Arial`;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.26)";
+          for (let row = -canvas.height; row < canvas.height * 2; row += 110) {
+            for (let column = -canvas.width; column < canvas.width * 2; column += 250) {
+              ctx.fillText(text, column, row);
+            }
+          }
+          ctx.restore();
 
           ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
           ctx.fillText(text, x + 2, y + 2);
@@ -114,6 +128,30 @@ function BrandLogo({ variant = "symbol", className = "" }) {
       src={source}
       alt="Logo EazyHome"
     />
+  );
+}
+
+function ProtectedImage({ src, alt, className = "", style, ...imageProps }) {
+  const blockImageAction = (event) => event.preventDefault();
+
+  return (
+    <div
+      className="protected-image-frame"
+      onContextMenu={blockImageAction}
+      onDragStart={blockImageAction}
+      onCopy={blockImageAction}
+    >
+      <img
+        className={className}
+        src={src}
+        alt={alt}
+        style={style}
+        {...imageProps}
+        draggable="false"
+        onContextMenu={blockImageAction}
+        onDragStart={blockImageAction}
+      />
+    </div>
   );
 }
 
@@ -884,11 +922,6 @@ async function uploadPhotos(files) {
       const uploadedUrls = await uploadPhotos(selectedPhotos);
       const imageUrls = [...uploadedUrls];
 
-      // Conserver la compatibilité avec les anciennes annonces utilisant une URL.
-      if (imageUrls.length === 0 && form.image_url.trim()) {
-        imageUrls.push(form.image_url.trim());
-      }
-
       const now = new Date().toISOString();
 
       const payload = {
@@ -1579,17 +1612,11 @@ const navItems = [
                   </div>
                 )}
 
-                <label htmlFor="image_url">
-                  Ou lien direct vers une photo existante
-                </label>
-                <input
-                  id="image_url"
-                  name="image_url"
-                  type="url"
-                  value={form.image_url}
-                  onChange={updateForm}
-                  placeholder="https://exemple.com/photo.jpg"
-                />
+                <p className="field-help protected-photo-note">
+                  Chaque photo importée est filigranée avec l’identifiant unique
+                  du bailleur avant sa publication. Les liens externes ne sont
+                  pas acceptés afin de conserver cette protection.
+                </p>
 
                 <label htmlFor="description">Description du logement</label>
                 <textarea
@@ -1987,7 +2014,7 @@ const navItems = [
                             }}
                           >
                             {images.map((imageUrl, index) => (
-                              <img
+                              <ProtectedImage
                                 key={`${imageUrl}-${index}`}
                                 className="post-image"
                                 src={imageUrl}

@@ -918,6 +918,18 @@ img {
   background: #f0f2f5;
 }
 
+.protected-image-frame {
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.protected-image-frame img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 .post-image {
   display: block;
   width: 100%;
