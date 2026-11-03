@@ -39,6 +39,24 @@
     color: #64748b;
     line-height: 1.6;
   }
+
+  .auth-language-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  .auth-language-row select {
+    width: auto;
+    min-height: 36px;
+    padding: 7px 28px 7px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
   
   .auth-tabs {
     display: flex;
@@ -66,6 +84,40 @@
     display: grid;
     gap: 16px;
   }
+
+  .auth-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .auth-fieldset legend {
+    margin-bottom: 8px;
+    color: #243247;
+    font-weight: 600;
+  }
+
+  .auth-identifier-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .auth-identifier-tabs button {
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+  }
+
+  .auth-identifier-tabs button.active {
+    border-color: #f58220;
+    background: #fff3e8;
+    color: #db6c10;
+  }
   
   .auth-card label {
     display: grid;
@@ -92,6 +144,62 @@
   .auth-card select:focus {
     border-color: #1769aa;
     box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.12);
+  }
+
+  .phone-input-wrap,
+  .password-input-wrap {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .phone-input-wrap input,
+  .password-input-wrap input {
+    min-width: 0;
+    border-radius: 9px;
+  }
+
+  .phone-prefix {
+    display: grid;
+    min-width: 58px;
+    place-items: center;
+    border: 1px solid #cbd5e1;
+    border-right: 0;
+    border-radius: 9px 0 0 9px;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+  }
+
+  .phone-input-wrap input {
+    border-radius: 0 9px 9px 0;
+  }
+
+  .password-input-wrap {
+    position: relative;
+  }
+
+  .password-input-wrap input {
+    padding-right: 86px;
+  }
+
+  .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    min-height: 30px;
+    padding: 4px 8px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #db6c10;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .password-toggle:hover {
+    background: #fff3e8;
   }
   
   .auth-submit {

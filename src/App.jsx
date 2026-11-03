@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
 import "./App.css";
 import "./App-auth-styles.css";
-import logo from "./assets/logo.jpg";
 const CATEGORIES = [
   { value: "all", label: "Tous les logements" },
   { value: "studio", label: "Studios" },
@@ -283,7 +282,6 @@ const TRANSLATIONS = {
   "Mon compte": "My account",
   "Informations de ton compte EazyHome.": "Your EazyHome account information.",
   "Pseudonyme": "Username",
-  "Adresse e-mail": "Email address",
   "Type de compte": "Account type",
   "Préférence pour les notifications.": "Notification preferences.",
   "Activer les notifications": "Enable notifications",
@@ -294,8 +292,110 @@ const TRANSLATIONS = {
   "Studios": "Studios",
   "Appartements": "Apartments",
   "Maisons": "Houses",
-  "Chambres": "Rooms"
+  "Chambres": "Rooms",
+  "Personnalise ton expérience EazyHome.": "Customize your EazyHome experience.",
+  "Ce réglage mémorise uniquement ta préférence dans l'interface. Les notifications réelles restent à configurer.": "This setting only saves your preference in the interface. Real notifications still need to be configured.",
+  "Aucune annonce ne correspond à ta recherche pour le moment.": "No listing matches your search right now.",
+  "Tu n’as pas encore ajouté de logement à tes favoris.": "You have not added any properties to your favorites yet.",
+  "Publier la première annonce": "Publish the first listing",
+  "Chargement des annonces...": "Loading listings...",
+  "Photo du logement non disponible": "Property photo unavailable",
+  "Le contact direct sera activé après la mise en place de la messagerie et des règles de sécurité.": "Direct contact will be enabled after messaging and security rules are set up.",
+  "Orange · Blanc · Gris foncé": "Orange · White · Charcoal"
 };
+
+const AUTH_COPY = {
+  fr: {
+    loading: "Chargement de votre espace...",
+    headline: "La maison, plus simplement.",
+    intro: "Découvre des logements, publie tes annonces et échange avec la communauté immobilière.",
+    benefitListings: "Des annonces centralisées",
+    benefitRoles: "Un espace pour bailleurs et locataires",
+    benefitSearch: "Une recherche adaptée à tes besoins",
+    login: "Connexion",
+    register: "Créer un compte",
+    loginHint: "Connecte-toi pour accéder au fil d'actualité.",
+    registerHint: "Rejoins la communauté EazyHome.",
+    fullName: "Nom complet",
+    fullNamePlaceholder: "Ex. Jean Dupont",
+    role: "Je suis",
+    tenant: "Locataire",
+    landlord: "Bailleur",
+    email: "Adresse e-mail",
+    emailPlaceholder: "nom@exemple.com",
+    phone: "Numéro de téléphone",
+    phonePlaceholder: "6 XX XX XX XX",
+    password: "Mot de passe",
+    passwordPlaceholder: "Au moins 6 caractères",
+    showPassword: "Afficher",
+    hidePassword: "Masquer",
+    loginWith: "Se connecter avec",
+    emailOption: "E-mail",
+    phoneOption: "Téléphone",
+    wait: "Patiente...",
+    submitLogin: "Se connecter",
+    submitRegister: "Créer mon compte",
+    noAccount: "Tu n'as pas encore de compte ?",
+    hasAccount: "Tu as déjà un compte ?",
+    signUp: "Inscris-toi",
+    signIn: "Connecte-toi",
+    language: "Langue",
+    accountCreated: "Compte créé avec succès.",
+    confirmationNeeded: "Compte créé. Vérifie ta boîte mail si une confirmation est demandée.",
+    invalidPhone: "Saisis un numéro camerounais valide de 9 chiffres après +237.",
+    invalidEmail: "Saisis une adresse e-mail valide.",
+  },
+  en: {
+    loading: "Loading your space...",
+    headline: "Housing, made simpler.",
+    intro: "Discover homes, publish listings, and connect with the real-estate community.",
+    benefitListings: "Centralized listings",
+    benefitRoles: "A space for landlords and tenants",
+    benefitSearch: "Search tailored to your needs",
+    login: "Log in",
+    register: "Create an account",
+    loginHint: "Log in to access your feed.",
+    registerHint: "Join the EazyHome community.",
+    fullName: "Full name",
+    fullNamePlaceholder: "e.g. Jean Dupont",
+    role: "I am a",
+    tenant: "Tenant",
+    landlord: "Landlord",
+    email: "Email address",
+    emailPlaceholder: "name@example.com",
+    phone: "Phone number",
+    phonePlaceholder: "6 XX XX XX XX",
+    password: "Password",
+    passwordPlaceholder: "At least 6 characters",
+    showPassword: "Show",
+    hidePassword: "Hide",
+    loginWith: "Log in with",
+    emailOption: "Email",
+    phoneOption: "Phone",
+    wait: "Please wait...",
+    submitLogin: "Log in",
+    submitRegister: "Create my account",
+    noAccount: "Don't have an account yet?",
+    hasAccount: "Already have an account?",
+    signUp: "Sign up",
+    signIn: "Log in",
+    language: "Language",
+    accountCreated: "Account created successfully.",
+    confirmationNeeded: "Account created. Check your email if confirmation is required.",
+    invalidPhone: "Enter a valid Cameroon number with 9 digits after +237.",
+    invalidEmail: "Enter a valid email address.",
+  },
+};
+
+function normalizeCameroonPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "").replace(/^237/, "");
+  return digits ? `+237${digits.slice(0, 9)}` : "";
+}
+
+function isValidCameroonPhone(value) {
+  return /^\+237\d{9}$/.test(normalizeCameroonPhone(value));
+}
+
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -304,9 +404,11 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [authIdentifier, setAuthIdentifier] = useState("email");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
-  const [nickname, setNickname] = useState("");
   const [role, setRole] = useState("locataire");
 
   const [properties, setProperties] = useState([]);
@@ -400,12 +502,16 @@ useEffect(() => {
   });
 
   const user = session?.user || null;
+  const authCopy = AUTH_COPY[language] || AUTH_COPY.fr;
+  const translate = (text) =>
+    language === "en" ? TRANSLATIONS[text] || text : text;
   const userRole = user?.user_metadata?.role || "locataire";
 
   const userName =
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
+    user?.phone ||
     "Utilisateur";
 
   const userAvatar =
@@ -496,6 +602,8 @@ useEffect(() => {
 
   useEffect(() => {
     if (user) {
+      // Loading remote listings here keeps the feed synchronized with auth state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadProperties();
     } else {
       setProperties([]);
@@ -521,32 +629,45 @@ useEffect(() => {
     setAuthLoading(true);
 
     try {
+      const normalizedPhone = normalizeCameroonPhone(phone);
+
+      if (authIdentifier === "phone" && !isValidCameroonPhone(phone)) {
+        throw new Error(authCopy.invalidPhone);
+      }
+
+      if (authIdentifier === "email" && !email.trim().includes("@")) {
+        throw new Error(authCopy.invalidEmail);
+      }
+
       if (authMode === "register") {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+        const credentials = {
           password,
           options: {
             data: {
               full_name: fullName.trim(),
               role,
+              phone: authIdentifier === "phone" ? normalizedPhone : phone.trim(),
             },
           },
-        });
+        };
+        if (authIdentifier === "phone") credentials.phone = normalizedPhone;
+        else credentials.email = email.trim();
+
+        const { data, error } = await supabase.auth.signUp(credentials);
 
         if (error) throw error;
 
         if (data.session) {
-          setAuthSuccess("Compte créé avec succès.");
+          setAuthSuccess(authCopy.accountCreated);
         } else {
-          setAuthSuccess(
-            "Compte créé. Vérifie ta boîte mail si une confirmation est demandée."
-          );
+          setAuthSuccess(authCopy.confirmationNeeded);
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
+        const credentials = { password };
+        if (authIdentifier === "phone") credentials.phone = normalizedPhone;
+        else credentials.email = email.trim();
+
+        const { error } = await supabase.auth.signInWithPassword(credentials);
 
         if (error) throw error;
       }
@@ -871,7 +992,7 @@ async function uploadPhotos(files) {
       <div className="loading-screen">
         <div className="brand-mark">E</div>
         <strong>EazyHome</strong>
-        <span>Chargement de votre espace...</span>
+        <span>{authCopy.loading}</span>
       </div>
     );
   }
@@ -885,80 +1006,143 @@ async function uploadPhotos(files) {
             <span>EazyHome</span>
           </div>
 
-          <h1>La maison, plus simplement.</h1>
+          <h1>{authCopy.headline}</h1>
 
-          <p>
-            Découvre des logements, publie tes annonces et échange avec la
-            communauté immobilière.
-          </p>
+          <p>{authCopy.intro}</p>
 
           <div className="auth-benefits">
-            <div><span>✓</span> Des annonces centralisées</div>
-            <div><span>✓</span> Un espace pour bailleurs et locataires</div>
-            <div><span>✓</span> Une recherche adaptée à tes besoins</div>
+            <div><span>✓</span> {authCopy.benefitListings}</div>
+            <div><span>✓</span> {authCopy.benefitRoles}</div>
+            <div><span>✓</span> {authCopy.benefitSearch}</div>
           </div>
         </section>
 
         <section className="auth-card">
-          <h2>{authMode === "login" ? "Connexion" : "Créer un compte"}</h2>
+          <div className="auth-language-row">
+            <label htmlFor="auth-language">{authCopy.language}</label>
+            <select
+              id="auth-language"
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+            >
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+
+          <h2>{authMode === "login" ? authCopy.login : authCopy.register}</h2>
 
           <p className="muted">
             {authMode === "login"
-              ? "Connecte-toi pour accéder au fil d'actualité."
-              : "Rejoins la communauté EazyHome."}
+              ? authCopy.loginHint
+              : authCopy.registerHint}
           </p>
 
           <form onSubmit={handleAuthSubmit} className="auth-form">
             {authMode === "register" && (
               <>
-                <label htmlFor="fullName">Nom complet</label>
+                <label htmlFor="fullName">{authCopy.fullName}</label>
                 <input
                   id="fullName"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  placeholder="Ex. Jean Dupont"
+                  placeholder={authCopy.fullNamePlaceholder}
                   autoComplete="name"
                   required
                 />
 
-                <label htmlFor="role">Je suis</label>
+                <label htmlFor="role">{authCopy.role}</label>
                 <select
                   id="role"
                   value={role}
                   onChange={(event) => setRole(event.target.value)}
                 >
-                  <option value="locataire">Locataire</option>
-                  <option value="bailleur">Bailleur</option>
+                  <option value="locataire">{authCopy.tenant}</option>
+                  <option value="bailleur">{authCopy.landlord}</option>
                 </select>
               </>
             )}
 
-            <label htmlFor="email">Adresse e-mail</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="nom@exemple.com"
-              autoComplete="email"
-              required
-            />
+            <fieldset className="auth-fieldset">
+              <legend>{authCopy.loginWith}</legend>
+              <div className="auth-identifier-tabs">
+                <button
+                  type="button"
+                  className={authIdentifier === "email" ? "active" : ""}
+                  onClick={() => setAuthIdentifier("email")}
+                >
+                  {authCopy.emailOption}
+                </button>
+                <button
+                  type="button"
+                  className={authIdentifier === "phone" ? "active" : ""}
+                  onClick={() => setAuthIdentifier("phone")}
+                >
+                  {authCopy.phoneOption}
+                </button>
+              </div>
+            </fieldset>
 
-            <label htmlFor="password">Mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Au moins 6 caractères"
-              autoComplete={
-                authMode === "login"
-                  ? "current-password"
-                  : "new-password"
-              }
-              minLength={6}
-              required
-            />
+            {authIdentifier === "email" ? (
+              <label htmlFor="email">
+                {authCopy.email}
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder={authCopy.emailPlaceholder}
+                  autoComplete="email"
+                  required
+                />
+              </label>
+            ) : (
+              <label htmlFor="phone">
+                {authCopy.phone}
+                <span className="phone-input-wrap">
+                  <span className="phone-prefix">+237</span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    value={phone.replace(/^\+237/, "")}
+                    onChange={(event) => setPhone(normalizeCameroonPhone(event.target.value))}
+                    placeholder={authCopy.phonePlaceholder}
+                    autoComplete="tel"
+                    maxLength={9}
+                    required
+                  />
+                </span>
+              </label>
+            )}
+
+            <label htmlFor="password" className="password-label">
+              {authCopy.password}
+              <span className="password-input-wrap">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder={authCopy.passwordPlaceholder}
+                  autoComplete={
+                    authMode === "login"
+                      ? "current-password"
+                      : "new-password"
+                  }
+                  minLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? authCopy.hidePassword : authCopy.showPassword}
+                >
+                  {showPassword ? authCopy.hidePassword : authCopy.showPassword}
+                </button>
+              </span>
+            </label>
 
             {authError && (
               <p className="message-error">{authError}</p>
@@ -973,17 +1157,17 @@ async function uploadPhotos(files) {
               disabled={authLoading}
             >
               {authLoading
-                ? "Patiente..."
+                ? authCopy.wait
                 : authMode === "login"
-                  ? "Se connecter"
-                  : "Créer mon compte"}
+                  ? authCopy.submitLogin
+                  : authCopy.submitRegister}
             </button>
           </form>
 
           <div className="auth-switch">
             {authMode === "login"
-              ? "Tu n'as pas encore de compte ?"
-              : "Tu as déjà un compte ?"}
+              ? authCopy.noAccount
+              : authCopy.hasAccount}
 
             <button
               type="button"
@@ -996,7 +1180,7 @@ async function uploadPhotos(files) {
                 setAuthSuccess("");
               }}
             >
-              {authMode === "login" ? "Inscris-toi" : "Connecte-toi"}
+              {authMode === "login" ? authCopy.signUp : authCopy.signIn}
             </button>
           </div>
         </section>
@@ -1051,10 +1235,10 @@ const navItems = [
               key={item.label}
               className={`top-nav-item ${page === item.label ? "active" : ""}`}
               onClick={() => navigate(item.label)}
-              title={item.label}
+              title={translate(item.label)}
             >
               <Icon name={item.icon} />
-              <span>{item.label}</span>
+              <span>{translate(item.label)}</span>
             </button>
           ))}
         </nav>
@@ -1069,7 +1253,7 @@ const navItems = [
               }}
             >
               <Icon name="plus" />
-              <span>Publier</span>
+              <span>{translate("Publier")}</span>
             </button>
           )}
 
@@ -1111,7 +1295,7 @@ const navItems = [
           </div>
 
           <div className="sidebar-divider" />
-          <p className="sidebar-heading">Menu</p>
+          <p className="sidebar-heading">{translate("Menu")}</p>
 
           {navItems.map((item) => (
             <button
@@ -1120,7 +1304,7 @@ const navItems = [
               onClick={() => navigate(item.label)}
             >
               <span className="sidebar-icon"><Icon name={item.icon} /></span>
-              <span>{item.label}</span>
+              <span>{translate(item.label)}</span>
             </button>
           ))}
 
@@ -1129,7 +1313,7 @@ const navItems = [
             onClick={() => navigate("Favoris")}
           >
             <span className="sidebar-icon"><Icon name="heart" /></span>
-            <span>Mes favoris</span>
+            <span>{translate("Mes favoris")}</span>
           </button>
 
           {userRole === "bailleur" && (
@@ -1138,7 +1322,7 @@ const navItems = [
               onClick={() => navigate("Mes annonces")}
             >
               <span className="sidebar-icon"><Icon name="home" /></span>
-              <span>Mes annonces</span>
+              <span>{translate("Mes annonces")}</span>
             </button>
           )}
 
@@ -1146,13 +1330,13 @@ const navItems = [
           <p className="sidebar-heading">EazyHome</p>
 
           <div className="sidebar-note">
-            <strong>La maison facile</strong>
-            <p>Un espace pour découvrir et proposer des logements.</p>
+            <strong>{translate("La maison facile")}</strong>
+            <p>{translate("Une façon plus simple de rechercher ou proposer un logement.")}</p>
           </div>
 
           <button className="sidebar-link logout-mobile" onClick={handleLogout}>
             <span className="sidebar-icon"><Icon name="logout" /></span>
-            <span>Déconnexion</span>
+            <span>{translate("Déconnexion")}</span>
           </button>
         </aside>
 
@@ -1161,8 +1345,8 @@ const navItems = [
             <>
               <div className="feed-heading">
                 <div>
-                  <h1>Fil d’actualité</h1>
-                  <p>Les logements publiés sur EazyHome.</p>
+                  <h1>{translate("Fil d’actualité")}</h1>
+                  <p>{translate("Les logements publiés sur EazyHome.")}</p>
                 </div>
                 <span className="feed-count">
                   {filteredProperties.length} annonce(s)
@@ -1171,9 +1355,9 @@ const navItems = [
 
               <section className="welcome-card">
                 <div className="welcome-copy">
-                  <span className="eyebrow">BIENVENUE SUR EAZYHOME</span>
-                  <h2>Trouve ton prochain chez-toi.</h2>
-                  <p>Explore les annonces et affine ta recherche.</p>
+                  <span className="eyebrow">{translate("BIENVENUE SUR EAZYHOME")}</span>
+                  <h2>{translate("Trouve ton prochain chez-toi.")}</h2>
+                  <p>{translate("Explore les annonces et affine ta recherche.")}</p>
                 </div>
                 <div className="welcome-symbol">E</div>
               </section>
@@ -1195,7 +1379,7 @@ const navItems = [
               </div>
 
               <div className="create-post-bottom">
-                <span><Icon name="home" /> Logement</span>
+                <span><Icon name="home" /> {translate("Logement")}</span>
                 <button
                   onClick={() => {
                     setPostError("");
@@ -1212,8 +1396,8 @@ const navItems = [
             <section className="panel post-form-panel">
               <div className="panel-heading">
                 <div>
-                  <h2>Nouvelle annonce</h2>
-                  <p>Présente clairement le logement à louer.</p>
+                  <h2>{translate("Nouvelle annonce")}</h2>
+                  <p>{translate("Présente clairement le logement à louer.")}</p>
                 </div>
 
                 <button
@@ -1475,32 +1659,32 @@ const navItems = [
 {page === "Paramètres" && (
   <section className="settings-page">
     <div className="settings-header">
-      <h1>Paramètres</h1>
-      <p>Personnalise ton expérience EazyHome.</p>
+      <h1>{translate("Paramètres")}</h1>
+      <p>{translate("Personnalise ton expérience EazyHome.")}</p>
     </div>
 
     <section className="settings-card">
       <div className="settings-card-heading">
         <span className="settings-symbol">◐</span>
         <div>
-          <h2>Apparence</h2>
-          <p>Choisis l'apparence de ton application.</p>
+          <h2>{translate("Apparence")}</h2>
+          <p>{translate("Choisis l'apparence de ton application.")}</p>
         </div>
       </div>
 
-      <label htmlFor="theme-choice">Thème de l'application</label>
+      <label htmlFor="theme-choice">{translate("Thème de l'application")}</label>
       <select
         id="theme-choice"
         value={theme}
         onChange={(event) => setTheme(event.target.value)}
       >
-        <option value="light">Clair</option>
-        <option value="dark">Sombre</option>
-        <option value="auto">Automatique</option>
+        <option value="light">{translate("Clair")}</option>
+        <option value="dark">{translate("Sombre")}</option>
+        <option value="auto">{translate("Automatique")}</option>
       </select>
 
       <p className="settings-help">
-        Ton choix est enregistré sur cet appareil.
+        {translate("Ton choix est enregistré sur cet appareil.")}
       </p>
     </section>
 
@@ -1508,12 +1692,12 @@ const navItems = [
       <div className="settings-card-heading">
         <span className="settings-symbol">文</span>
         <div>
-          <h2>Langue</h2>
-          <p>Choisis ta langue préférée.</p>
+          <h2>{translate("Langue")}</h2>
+          <p>{translate("Choisis ta langue préférée.")}</p>
         </div>
       </div>
 
-      <label htmlFor="language-choice">Langue</label>
+      <label htmlFor="language-choice">{translate("Langue")}</label>
       <select
         id="language-choice"
         value={language}
@@ -1524,8 +1708,7 @@ const navItems = [
       </select>
 
       <p className="settings-help">
-        La préférence est enregistrée. La traduction complète
-        de l'interface reste à intégrer.
+        {translate("La préférence est enregistrée. La traduction complète de l'interface reste à intégrer.")}
       </p>
     </section>
 
@@ -1533,25 +1716,25 @@ const navItems = [
       <div className="settings-card-heading">
         <span className="settings-symbol">@</span>
         <div>
-          <h2>Mon compte</h2>
-          <p>Informations de ton compte EazyHome.</p>
+          <h2>{translate("Mon compte")}</h2>
+          <p>{translate("Informations de ton compte EazyHome.")}</p>
         </div>
       </div>
 
       <div className="settings-info-row">
-        <span>Pseudonyme</span>
+        <span>{translate("Pseudonyme")}</span>
         <strong>
           @{user.user_metadata?.nickname || userName}
         </strong>
       </div>
 
       <div className="settings-info-row">
-        <span>Adresse e-mail</span>
+        <span>{translate("Adresse e-mail")}</span>
         <strong>{user.email}</strong>
       </div>
 
       <div className="settings-info-row">
-        <span>Type de compte</span>
+        <span>{translate("Type de compte")}</span>
         <strong>
           {userRole === "bailleur" ? "Bailleur" : "Locataire"}
         </strong>
@@ -1562,13 +1745,13 @@ const navItems = [
       <div className="settings-card-heading">
         <span className="settings-symbol">♧</span>
         <div>
-          <h2>Notifications</h2>
-          <p>Préférence pour les notifications.</p>
+          <h2>{translate("Notifications")}</h2>
+          <p>{translate("Préférence pour les notifications.")}</p>
         </div>
       </div>
 
       <label className="settings-toggle">
-        <span>Activer les notifications</span>
+        <span>{translate("Activer les notifications")}</span>
         <input
           type="checkbox"
           checked={notificationsEnabled}
@@ -1579,20 +1762,19 @@ const navItems = [
       </label>
 
       <p className="settings-help">
-        Ce réglage mémorise uniquement ta préférence dans
-        l'interface. Les notifications réelles restent à configurer.
+        {translate("Ce réglage mémorise uniquement ta préférence dans l'interface. Les notifications réelles restent à configurer.")}
       </p>
     </section>
 
     <section className="settings-card settings-danger-card">
-      <h2>Sécurité et session</h2>
-      <p>Déconnecte-toi de ton compte sur cet appareil.</p>
+      <h2>{translate("Sécurité et session")}</h2>
+      <p>{translate("Déconnecte-toi de ton compte sur cet appareil.")}</p>
       <button
         className="button button-light"
         onClick={handleLogout}
       >
         <Icon name="logout" />
-        Déconnexion
+        {translate("Déconnexion")}
       </button>
     </section>
   </section>
@@ -1607,12 +1789,12 @@ const navItems = [
                   <div>
                     <h2>
                       {page === "Favoris"
-                        ? "Mes favoris"
+                        ? translate("Mes favoris")
                         : page === "Mes annonces"
-                          ? "Mes annonces"
-                          : "Logements à découvrir"}
+                          ? translate("Mes annonces")
+                          : translate("Logements à découvrir")}
                     </h2>
-                    <p>Filtre les résultats selon tes critères.</p>
+                    <p>{translate("Filtre les résultats selon tes critères.")}</p>
                   </div>
 
                   <button
@@ -1624,13 +1806,13 @@ const navItems = [
                       setMaxPrice("");
                     }}
                   >
-                    Réinitialiser
+                    {translate("Réinitialiser")}
                   </button>
                 </div>
 
                 <div className="filter-controls">
                   <label>
-                    <span>Ville</span>
+                    <span>{translate("Ville")}</span>
                     <input
                       value={cityFilter}
                       onChange={(event) => setCityFilter(event.target.value)}
@@ -1639,7 +1821,7 @@ const navItems = [
                   </label>
 
                   <label>
-                    <span>Type de logement</span>
+                    <span>{translate("Type de logement")}</span>
                     <select
                       value={typeFilter}
                       onChange={(event) => setTypeFilter(event.target.value)}
@@ -1653,13 +1835,13 @@ const navItems = [
                   </label>
 
                   <label>
-                    <span>Budget maximum (FCFA)</span>
+                    <span>{translate("Budget maximum (FCFA)")}</span>
                     <input
                       type="number"
                       min="0"
                       value={maxPrice}
                       onChange={(event) => setMaxPrice(event.target.value)}
-                      placeholder="Sans limite"
+                      placeholder={translate("Sans limite")}
                     />
                   </label>
                 </div>
@@ -1674,16 +1856,16 @@ const navItems = [
 
               {propertiesLoading ? (
                 <div className="panel loading-panel">
-                  Chargement des annonces...
+                  {translate("Chargement des annonces...")}
                 </div>
               ) : displayedProperties.length === 0 ? (
                 <section className="panel empty-state">
                   <div className="empty-icon"><Icon name="home" /></div>
-                  <h2>Aucun logement trouvé</h2>
+                  <h2>{translate("Aucun logement trouvé")}</h2>
                   <p>
                     {page === "Favoris"
-                      ? "Tu n’as pas encore ajouté de logement à tes favoris."
-                      : "Aucune annonce ne correspond à ta recherche pour le moment."}
+                      ? translate("Tu n’as pas encore ajouté de logement à tes favoris.")
+                      : translate("Aucune annonce ne correspond à ta recherche pour le moment.")}
                   </p>
 
                   {userRole === "bailleur" && page !== "Favoris" && (
@@ -1694,7 +1876,7 @@ const navItems = [
                         setShowPostForm(true);
                       }}
                     >
-                      Publier la première annonce
+                      {translate("Publier la première annonce")}
                     </button>
                   )}
                 </section>
@@ -1720,7 +1902,7 @@ const navItems = [
                           <div className="post-owner">
                             <strong>{owner.name}</strong>
                             <span>
-                              Bailleur ·{" "}
+                              {translate("Bailleur")} ·{" "}
                               {property.created_at
                                 ? new Date(
                                     property.created_at
@@ -1729,13 +1911,13 @@ const navItems = [
                                     month: "short",
                                     year: "numeric",
                                   })
-                                : "Annonce récente"}
+                                : translate("Annonce récente")}
                             </span>
                           </div>
 
                           <span className="availability-pill">
                             {property.status === "available"
-                              ? "Disponible"
+                              ? translate("Disponible")
                               : property.status || "Annonce"}
                           </span>
                         </div>
@@ -1789,19 +1971,19 @@ const navItems = [
                         ) : (
                           <div className="post-image-placeholder">
                             <Icon name="home" />
-                            <span>Photo du logement non disponible</span>
+                            <span>{translate("Photo du logement non disponible")}</span>
                           </div>
                         )}
 
                         <div className="post-property-facts">
                           <div className="price-block">
                             <strong>{formatPrice(property.price)}</strong>
-                            <span>par mois</span>
+                            <span>{translate("par mois")}</span>
                           </div>
 
                           <div className="property-fact">
                             <Icon name="bed" />
-                            <span>{property.bedrooms ?? 0} chambre(s)</span>
+                            <span>{property.bedrooms ?? 0} {translate("chambre(s)")}</span>
                           </div>
 
                           <span className="type-chip">
@@ -1816,19 +1998,17 @@ const navItems = [
                           >
                             <Icon name="heart" />
                             {isFavorite
-                              ? "Enregistré"
-                              : "Ajouter aux favoris"}
+                              ? translate("Enregistré")
+                              : translate("Ajouter aux favoris")}
                           </button>
 
                           <button
                             onClick={() =>
-                              window.alert(
-                                "Le contact direct sera activé après la mise en place de la messagerie et des règles de sécurité."
-                              )
+                              window.alert(translate("Le contact direct sera activé après la mise en place de la messagerie et des règles de sécurité."))
                             }
                           >
                             <Icon name="message" />
-                            Contacter le bailleur
+                            {translate("Contacter le bailleur")}
                           </button>
                         </div>
                       </article>
@@ -1840,7 +2020,7 @@ const navItems = [
           )}
 
           <footer className="feed-footer">
-            <strong>EazyHome</strong> · La maison facile
+            <strong>EazyHome</strong> · {translate("La maison facile")}
             <span>© {new Date().getFullYear()} EazyHome</span>
           </footer>
         </main>
@@ -1848,30 +2028,30 @@ const navItems = [
         <aside className="right-sidebar">
           <section className="right-card">
             <div className="right-card-heading">
-              <h3>Conseils logement</h3>
+              <h3>{translate("Conseils logement")}</h3>
             </div>
 
             <div className="tip-item">
               <span className="tip-number">01</span>
               <div>
-                <strong>Vérifie les informations</strong>
-                <p>Examine les détails et l’adresse avant de te déplacer.</p>
+                <strong>{translate("Vérifie les informations")}</strong>
+                <p>{translate("Examine les détails et l’adresse avant de te déplacer.")}</p>
               </div>
             </div>
 
             <div className="tip-item">
               <span className="tip-number">02</span>
               <div>
-                <strong>Reste prudent</strong>
-                <p>Évite les paiements sans vérification du logement.</p>
+                <strong>{translate("Reste prudent")}</strong>
+                <p>{translate("Évite les paiements sans vérification du logement.")}</p>
               </div>
             </div>
 
             <div className="tip-item">
               <span className="tip-number">03</span>
               <div>
-                <strong>Pose tes questions</strong>
-                <p>Demande les conditions de location avant la visite.</p>
+                <strong>{translate("Pose tes questions")}</strong>
+                <p>{translate("Demande les conditions de location avant la visite.")}</p>
               </div>
             </div>
           </section>
@@ -1881,8 +2061,8 @@ const navItems = [
               <div className="brand-mark">E</div>
               <strong>EazyHome</strong>
             </div>
-            <p>Une façon plus simple de rechercher ou proposer un logement.</p>
-            <span>Orange · Blanc · Gris foncé</span>
+            <p>{translate("Une façon plus simple de rechercher ou proposer un logement.")}</p>
+            <span>{translate("Orange · Blanc · Gris foncé")}</span>
           </section>
         </aside>
       </div>
@@ -1895,7 +2075,7 @@ const navItems = [
             onClick={() => navigate(item.label)}
           >
             <Icon name={item.icon} />
-            <span>{item.label}</span>
+            <span>{translate(item.label)}</span>
           </button>
         ))}
       </nav>
@@ -1905,4 +2085,3 @@ const navItems = [
 }
 
 export default App;
-
