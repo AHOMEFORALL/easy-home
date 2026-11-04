@@ -1803,53 +1803,44 @@ const navItems = [
             <section className="panel profile-panel">
               <div className="profile-cover" />
               <div className="profile-details">
-                <Avatar name={userName} src={userAvatar} size="profile" />
+                <div className="profile-photo-picker">
+                  <Avatar name={userName} src={userAvatar} size="profile" />
+                  <label
+                    className={`profile-photo-add${profilePhotoLoading ? " is-loading" : ""}`}
+                    htmlFor="profile-photo-input"
+                    aria-label={translate(userAvatar ? "Modifier la photo" : "Ajouter une photo")}
+                    title={translate(userAvatar ? "Modifier la photo" : "Ajouter une photo")}
+                  >
+                    {profilePhotoLoading ? "…" : "+"}
+                  </label>
+                  <input
+                    id="profile-photo-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleProfilePhotoChange}
+                    disabled={profilePhotoLoading}
+                    hidden
+                  />
+                </div>
                 <h2>{userName}</h2>
                 <p>{user.email || user.phone}</p>
 
-                <div className="profile-photo-controls">
-                  <p className="profile-photo-title">{translate("Photo de profil")}</p>
-                  <p className="profile-photo-help">
-                    {translate("Ajoute une photo pour personnaliser ton profil.")}
-                  </p>
-                  <div className="profile-photo-actions">
-                    <label
-                      className="button button-primary profile-photo-button"
-                      htmlFor="profile-photo-input"
-                    >
-                      {profilePhotoLoading
-                        ? "..."
-                        : translate(userAvatar ? "Modifier la photo" : "Ajouter une photo")}
-                    </label>
-                    <input
-                      id="profile-photo-input"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleProfilePhotoChange}
-                      disabled={profilePhotoLoading}
-                      hidden
-                    />
-                    {userAvatar && (
-                      <button
-                        className="button button-light"
-                        type="button"
-                        onClick={handleProfilePhotoRemove}
-                        disabled={profilePhotoLoading}
-                      >
-                        {translate("Supprimer la photo")}
-                      </button>
-                    )}
-                  </div>
-                  <p className="profile-photo-help">
-                    {translate("Formats acceptés : JPG, PNG ou WebP. Taille maximale : 2 Mo.")}
-                  </p>
-                  {profilePhotoError && (
-                    <p className="message-error">{profilePhotoError}</p>
-                  )}
-                  {profilePhotoSuccess && (
-                    <p className="message-success">{profilePhotoSuccess}</p>
-                  )}
-                </div>
+                {userAvatar && (
+                  <button
+                    className="profile-photo-remove"
+                    type="button"
+                    onClick={handleProfilePhotoRemove}
+                    disabled={profilePhotoLoading}
+                  >
+                    {translate("Supprimer la photo")}
+                  </button>
+                )}
+                {profilePhotoError && (
+                  <p className="message-error">{profilePhotoError}</p>
+                )}
+                {profilePhotoSuccess && (
+                  <p className="message-success">{profilePhotoSuccess}</p>
+                )}
 
                 <span className="role-badge">
                   {userRole === "bailleur" ? "Bailleur" : "Locataire"}
