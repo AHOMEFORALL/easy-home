@@ -1224,6 +1224,46 @@ img {
   overflow-wrap: anywhere;
 }
 
+.profile-photo-controls {
+  width: min(100%, 460px);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.profile-photo-title {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.profile-photo-help {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.profile-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.profile-photo-button {
+  cursor: pointer;
+}
+
+.profile-photo-actions button:disabled,
+.profile-photo-button:has(+ input:disabled) {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .role-badge {
   padding: 6px 12px;
   border-radius: 20px;

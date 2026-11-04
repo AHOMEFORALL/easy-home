@@ -262,6 +262,14 @@ const TRANSLATIONS = {
   "Notifications": "Notifications",
   "Messagerie": "Messages",
   "Profil": "Profile",
+  "Photo de profil": "Profile photo",
+  "Ajoute une photo pour personnaliser ton profil.": "Add a photo to personalize your profile.",
+  "Ajouter une photo": "Add a photo",
+  "Modifier la photo": "Change photo",
+  "Supprimer la photo": "Remove photo",
+  "Formats acceptés : JPG, PNG ou WebP. Taille maximale : 2 Mo.": "Accepted formats: JPG, PNG or WebP. Maximum size: 2 MB.",
+  "Photo de profil mise à jour.": "Profile photo updated.",
+  "Photo de profil supprimée.": "Profile photo removed.",
   "Paramètres": "Settings",
   "Favoris": "Favorites",
   "Mes favoris": "My favorites",
@@ -540,6 +548,9 @@ useEffect(() => {
   const [postSuccess, setPostSuccess] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [profilePhotoLoading, setProfilePhotoLoading] = useState(false);
+  const [profilePhotoError, setProfilePhotoError] = useState("");
+  const [profilePhotoSuccess, setProfilePhotoSuccess] = useState("");
 
   const [form, setForm] = useState({
     title: "",
@@ -761,6 +772,107 @@ useEffect(() => {
     } else {
       setPage("Accueil");
       setShowPostForm(false);
+    }
+  }
+
+  function applyUpdatedUser(updatedUser) {
+    setSession((current) =>
+      current ? { ...current, user: updatedUser } : current
+    );
+  }
+
+  async function handleProfilePhotoChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    setProfilePhotoError("");
+    setProfilePhotoSuccess("");
+
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setProfilePhotoError(translate("Formats acceptés : JPG, PNG ou WebP. Taille maximale : 2 Mo."));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setProfilePhotoError(translate("Formats acceptés : JPG, PNG ou WebP. Taille maximale : 2 Mo."));
+      return;
+    }
+    if (!user?.id || supabaseConfigError || !supabase) {
+      setProfilePhotoError(supabaseConfigError || "Connecte-toi pour modifier ta photo.");
+      return;
+    }
+
+    setProfilePhotoLoading(true);
+    try {
+      const bucket = "property-images";
+      const extension = file.type.split("/")[1] || "jpg";
+      const path = `${user.id}/profile-${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(path);
+      const avatarUrl = publicData.publicUrl;
+      const previousPath = user.user_metadata?.avatar_path;
+
+      const { data: updatedData, error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl, avatar_path: path },
+      });
+      if (updateError) throw updateError;
+
+      // Le profil public est mis à jour quand la ligne existe déjà. Les métadonnées
+      // Auth restent la source de vérité pour l’utilisateur connecté.
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", user.id);
+
+      if (previousPath) {
+        await supabase.storage.from(bucket).remove([previousPath]);
+      }
+      applyUpdatedUser(updatedData.user);
+      setProfilePhotoSuccess(translate("Photo de profil mise à jour."));
+    } catch (error) {
+      setProfilePhotoError(error.message || "Impossible de mettre à jour la photo.");
+    } finally {
+      setProfilePhotoLoading(false);
+    }
+  }
+
+  async function handleProfilePhotoRemove() {
+    if (!user?.id || supabaseConfigError || !supabase) {
+      setProfilePhotoError(supabaseConfigError || "Connecte-toi pour modifier ta photo.");
+      return;
+    }
+
+    setProfilePhotoLoading(true);
+    setProfilePhotoError("");
+    setProfilePhotoSuccess("");
+    try {
+      const bucket = "property-images";
+      const previousPath = user.user_metadata?.avatar_path;
+      if (previousPath) {
+        await supabase.storage.from(bucket).remove([previousPath]);
+      }
+
+      const { data: updatedData, error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: null, avatar_path: null },
+      });
+      if (updateError) throw updateError;
+
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", user.id);
+
+      applyUpdatedUser(updatedData.user);
+      setProfilePhotoSuccess(translate("Photo de profil supprimée."));
+    } catch (error) {
+      setProfilePhotoError(error.message || "Impossible de supprimer la photo.");
+    } finally {
+      setProfilePhotoLoading(false);
     }
   }
 
@@ -1693,7 +1805,51 @@ const navItems = [
               <div className="profile-details">
                 <Avatar name={userName} src={userAvatar} size="profile" />
                 <h2>{userName}</h2>
-                <p>{user.email}</p>
+                <p>{user.email || user.phone}</p>
+
+                <div className="profile-photo-controls">
+                  <p className="profile-photo-title">{translate("Photo de profil")}</p>
+                  <p className="profile-photo-help">
+                    {translate("Ajoute une photo pour personnaliser ton profil.")}
+                  </p>
+                  <div className="profile-photo-actions">
+                    <label
+                      className="button button-primary profile-photo-button"
+                      htmlFor="profile-photo-input"
+                    >
+                      {profilePhotoLoading
+                        ? "..."
+                        : translate(userAvatar ? "Modifier la photo" : "Ajouter une photo")}
+                    </label>
+                    <input
+                      id="profile-photo-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleProfilePhotoChange}
+                      disabled={profilePhotoLoading}
+                      hidden
+                    />
+                    {userAvatar && (
+                      <button
+                        className="button button-light"
+                        type="button"
+                        onClick={handleProfilePhotoRemove}
+                        disabled={profilePhotoLoading}
+                      >
+                        {translate("Supprimer la photo")}
+                      </button>
+                    )}
+                  </div>
+                  <p className="profile-photo-help">
+                    {translate("Formats acceptés : JPG, PNG ou WebP. Taille maximale : 2 Mo.")}
+                  </p>
+                  {profilePhotoError && (
+                    <p className="message-error">{profilePhotoError}</p>
+                  )}
+                  {profilePhotoSuccess && (
+                    <p className="message-success">{profilePhotoSuccess}</p>
+                  )}
+                </div>
 
                 <span className="role-badge">
                   {userRole === "bailleur" ? "Bailleur" : "Locataire"}
